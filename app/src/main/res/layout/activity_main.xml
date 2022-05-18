@@ -8,7 +8,7 @@
 
     <fragment
         android:id="@+id/main_fragment"
-        android:name="com.ysp.mqcq02_applist.MainFragment"
+        android:name="com.ysp.mqcq02_applist.ApplistFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 

@@ -2,6 +2,7 @@ package com.ysp.mqcq02_applist;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
@@ -39,10 +40,11 @@ public class AppFinder extends AsyncTask<Void, ApplicationInformation, List<Appl
         @SuppressLint("WrongConstant") List<ApplicationInfo> installedApplications = packageManager.getInstalledApplications(PackageManager.MATCH_ALL);
         for (ApplicationInfo info : installedApplications) {
             ApplicationInformation information = new ApplicationInformation();
-            information.info = info;
+            information.applicationInfo = info;
             try {
                 information.icon = packageManager.getApplicationIcon(info.packageName);
                 information.label = packageManager.getApplicationLabel(info).toString();
+                information.launchIntent = packageManager.getLaunchIntentForPackage(info.packageName);
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
             }

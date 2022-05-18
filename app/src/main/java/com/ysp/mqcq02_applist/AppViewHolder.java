@@ -14,12 +14,13 @@ public class AppViewHolder extends RecyclerView.ViewHolder implements View.OnCli
     private ImageView icon;
     private TextView label;
 
-    public ApplicationInfo getInfo() {
+    public ApplicationInformation getInfo() {
         return info;
     }
 
     public void setInfo(ApplicationInformation info) {
         this.info = info;
+        setData();
     }
 
     public void setListener(AppClickListener listener) {
@@ -32,10 +33,12 @@ public class AppViewHolder extends RecyclerView.ViewHolder implements View.OnCli
         label = itemView.findViewById(R.id.label);
         itemView.setOnClickListener(this);
         this.info = info;
+        setData();
     }
 
     public AppViewHolder(@NonNull View itemView) {
         super(itemView);
+        itemView.setOnClickListener(this);
         icon = itemView.findViewById(R.id.icon);
         label = itemView.findViewById(R.id.label);
     }
