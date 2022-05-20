@@ -9,5 +9,6 @@ public class ApplicationInformation {
     public String label;
     public ApplicationInfo applicationInfo;
     public Intent launchIntent;
+    public int index;
 
 }

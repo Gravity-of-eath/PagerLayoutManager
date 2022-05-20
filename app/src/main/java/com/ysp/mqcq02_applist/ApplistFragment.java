@@ -42,9 +42,9 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
         app_list = view.findViewById(R.id.app_list);
         StaggeredGridLayoutManager staggeredGridLayoutManager = new StaggeredGridLayoutManager(3, RecyclerView.HORIZONTAL);
         staggeredGridLayoutManager.setGapStrategy(0);
-        app_list.setLayoutManager(staggeredGridLayoutManager);
+        app_list.setLayoutManager(new PageLayoutManager(4, 3, getContext()));
         app_list.setAdapter(applistAdapter);
-        helper.attachToRecyclerView(app_list);
+//        helper.attachToRecyclerView(app_list);
         return view;
     }
 

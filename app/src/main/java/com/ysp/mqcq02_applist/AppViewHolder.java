@@ -45,7 +45,7 @@ public class AppViewHolder extends RecyclerView.ViewHolder implements View.OnCli
 
     private void setData() {
         icon.setImageDrawable(info.icon);
-        label.setText(info.label);
+        label.setText(info.index + "");
     }
 
     @Override

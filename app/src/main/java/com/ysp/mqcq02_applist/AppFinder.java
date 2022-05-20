@@ -48,6 +48,7 @@ public class AppFinder extends AsyncTask<Void, ApplicationInformation, List<Appl
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
             }
+            information.index = installedApplications.indexOf(info);
             applicationInformations.add(information);
             publishProgress(information);
         }
