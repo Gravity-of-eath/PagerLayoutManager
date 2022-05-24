@@ -42,9 +42,18 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
         app_list = view.findViewById(R.id.app_list);
         StaggeredGridLayoutManager staggeredGridLayoutManager = new StaggeredGridLayoutManager(3, RecyclerView.HORIZONTAL);
         staggeredGridLayoutManager.setGapStrategy(0);
-        app_list.setLayoutManager(new PageLayoutManager(4, 3, getContext()));
         app_list.setAdapter(applistAdapter);
 //        helper.attachToRecyclerView(app_list);
+//        FocusLayoutManager focusLayoutManager =
+//                new FocusLayoutManager.Builder()
+//                        .layerPadding(22)
+//                        .normalViewGap(22)
+//                        .focusOrientation(FocusLayoutManager.FOCUS_LEFT)
+//                        .isAutoSelect(true)
+//                        .maxLayerCount(3)
+//                        .build();
+//        app_list.setLayoutManager(focusLayoutManager);
+        app_list.setLayoutManager(new PageLayoutManager(4, 3, getContext()));
         return view;
     }
 
@@ -61,6 +70,6 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
 
     @Override
     public void onAppClick(ApplicationInformation info) {
-        startActivity(info.launchIntent);
+//        startActivity(info.launchIntent);
     }
 }

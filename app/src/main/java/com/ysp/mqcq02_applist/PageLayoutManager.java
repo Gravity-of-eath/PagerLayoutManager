@@ -123,38 +123,6 @@ public class PageLayoutManager extends RecyclerView.LayoutManager {
             currentPage = pagePos;
             addLeftPage(recycler);
         }
-//        Rect visibleRect = getVisibleArea(travel);
-//        //布局子View阶段
-//        if (travel >= 0) {
-//            View lastView = getChildAt(getChildCount() - 1);
-//            int minPos = getPosition(lastView) + 1;//从最后一个View+1开始吧
-//            //顺序addChildView
-//            for (int i = 0; i <= getItemCount() - 1; i++) {
-//                Rect rect = mItemRects.get(i);
-//                if (Rect.intersects(visibleRect, rect)) {
-//                    View child = recycler.getViewForPosition(i);
-//                    addView(child);
-//                    measureChildWithMargins(child, 0, 0);
-//                    layoutDecorated(child, rect.left - mSumDx, rect.top, rect.right - mSumDx, rect.bottom);
-//                } else {
-//                    break;
-//                }
-//            }
-//        } else {
-//            View firstView = getChildAt(0);
-//            int maxPos = getPosition(firstView) - 1;
-//            for (int i = maxPos; i >= 0; i--) {
-//                Rect rect = mItemRects.get(i);
-//                if (Rect.intersects(visibleRect, rect)) {
-//                    View child = recycler.getViewForPosition(i);
-//                    addView(child, 0);//将View添加至RecyclerView中，childIndex为1，但是View的位置还是由layout的位置决定
-//                    measureChildWithMargins(child, 0, 0);
-//                    layoutDecoratedWithMargins(child, rect.left - mSumDx, rect.top, rect.right - mSumDx, rect.bottom);
-//                } else {
-//                    break;
-//                }
-//            }
-//        }
         mSumDx += travel;
         offsetChildrenHorizontal(-travel);
         return travel;
