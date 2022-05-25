@@ -32,6 +32,18 @@ public class ApplistAdapter extends RecyclerView.Adapter<AppViewHolder> {
         this.installedApplications = installedApplications;
     }
 
+    @Override
+    public int getItemViewType(int position) {
+        Log.d(TAG, "getItemViewType: =" );
+        return 0;
+    }
+
+    @Override
+    public long getItemId(int position) {
+        Log.d(TAG, "onCreateViewHolder: =" );
+        return 0;
+    }
+
     int i = 0;
 
     @NonNull
