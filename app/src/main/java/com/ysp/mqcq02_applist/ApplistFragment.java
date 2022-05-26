@@ -2,8 +2,11 @@ package com.ysp.mqcq02_applist;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.graphics.Path;
+import android.os.Build;
 import android.os.Bundle;
 
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.PagerSnapHelper;
@@ -13,6 +16,8 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.ysp.mqcq02_applist.pathlayoutmanager.PathLayoutManager;
 
 import java.util.List;
 
@@ -35,6 +40,7 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
         helper = new PagerSnapHelper();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -53,7 +59,11 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
 //                        .maxLayerCount(3)
 //                        .build();
 //        app_list.setLayoutManager(focusLayoutManager);
-        app_list.setLayoutManager(new PagerLayoutManager(4, 3, getContext()));
+        app_list.setLayoutManager(new PagerLayoutManager(3, 4, getContext()));
+//        Path path = new Path();
+//        path.moveTo(100, 100);
+//        path.arcTo(100, 100, 1000, 1000, 90, 180,true);
+//        app_list.setLayoutManager(new PathLayoutManager(path, 380));
         return view;
     }
 

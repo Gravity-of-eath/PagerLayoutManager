@@ -9,6 +9,10 @@ import android.view.ViewGroup;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class PagerLayoutManager extends RecyclerView.LayoutManager {
     private static final String TAG = "PageLayoutManager";
     private int rowCount = 4;
@@ -149,108 +153,175 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         }
     }
 
+    private void recycleChildren(RecyclerView.Recycler recycler) {
+        List<RecyclerView.ViewHolder> scrapList = recycler.getScrapList();
+        for (int i = 0; i < scrapList.size(); i++) {
+            RecyclerView.ViewHolder holder = scrapList.get(i);
+            removeView(holder.itemView);
+            recycler.recycleView(holder.itemView);
+        }
+    }
 
     private int recyclerAndFillView(RecyclerView.Recycler recycler, RecyclerView.State state, int travel) {
         //回收越界子View
-        for (int i = getChildCount() - 1; i >= 0; i--) {
-            View child = getChildAt(i);
-            if (travel >= 0) {//需要回收当前屏幕，左越界的View
-                if (getDecoratedRight(child) - travel < 0) {
-                    removeAndRecycleView(child, recycler);
-                    Log.d(TAG, "scrollHorizontallyBy:travel > 0 removeAndRecycleView i=" + i);
-                }
-            } else if (travel < 0) {//回收当前屏幕，右越界的View
-                if (getDecoratedLeft(child) - travel > getWidth()) {
-                    removeAndRecycleView(child, recycler);
-                    Log.d(TAG, "scrollHorizontallyBy:travel < 0 removeAndRecycleView i=" + i);
-                }
+//        for (int i = getChildCount() - 1; i >= 0; i--) {
+//            View child = getChildAt(i);
+//            if (travel >= 0) {//需要回收当前屏幕，左越界的View
+//                if (getDecoratedRight(child) - travel < 0) {
+//                    removeAndRecycleView(child, recycler);
+//                    Log.d(TAG, "scrollHorizontallyBy:travel > 0 removeAndRecycleView i=" + i);
+//                }
+//            } else if (travel < 0) {//回收当前屏幕，右越界的View
+//                if (getDecoratedLeft(child) - travel > getWidth()) {
+//                    removeAndRecycleView(child, recycler);
+//                    Log.d(TAG, "scrollHorizontallyBy:travel < 0 removeAndRecycleView i=" + i);
+//                }
+//            }
+//        }
+        List<Integer> visibilityIndex = getVisibilityIndex(travel < 0);
+        Log.e(TAG, "recyclerAndFillView: getVisibilityIndex size=" + visibilityIndex.size());
+        for (Integer i : visibilityIndex) {
+            Log.e(TAG, "recyclerAndFillView: visibilityIndex" + i);
+            if (i >= 0 && i < getItemCount()) {
+                Rect itemRang = getItemRang(i);
+                View viewForPosition = recycler.getViewForPosition(i);
+                ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+                layoutParams.width = childWidth;
+                layoutParams.height = childHeight;
+                viewForPosition.setLayoutParams(layoutParams);
+                addView(viewForPosition);
+                measureChild(viewForPosition, 0, 0);
+                layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
             }
         }
-        int startIndex = 0;
-        int endIndex = getItemCount();
-        int step = 1;
-        if (travel == 0) {
-            startIndex = getFirstShouldVisiPos();
-            endIndex = startIndex + getEachPageItemCount();
-            for (int i = startIndex; i <= endIndex; i += step) {
-                if (i >= 0 && i < getItemCount()) {
-                    Rect itemRang = getItemRang(i);
-                    View viewForPosition = recycler.getViewForPosition(i);
-                    ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                    layoutParams.width = childWidth;
-                    layoutParams.height = childHeight;
-                    viewForPosition.setLayoutParams(layoutParams);
-                    addView(viewForPosition);
-                    measureChild(viewForPosition, 0, 0);
-                    layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+        recycleChildren(recycler);
+//        int startIndex = 0;
+//        int endIndex = getItemCount();
+//        int step = 1;
+//        if (travel == 0) {
+//            startIndex = getFirstShouldVisiPos();
+//            endIndex = startIndex + getEachPageItemCount();
+//            for (int i = startIndex; i <= endIndex; i += step) {
+//                if (i >= 0 && i < getItemCount()) {
+//                    Rect itemRang = getItemRang(i);
+//                    View viewForPosition = recycler.getViewForPosition(i);
+//                    ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+//                    layoutParams.width = childWidth;
+//                    layoutParams.height = childHeight;
+//                    viewForPosition.setLayoutParams(layoutParams);
+//                    addView(viewForPosition);
+//                    measureChild(viewForPosition, 0, 0);
+//                    layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+//                }
+//            }
+//        } else if (travel > 0) {
+//            startIndex = getLastShouldVisiPos();
+//            if (startIndex % getEachPageItemCount() != 0) {
+//                endIndex = startIndex;
+//                startIndex = startIndex - ((rowCount - 1) * columnCount);
+//            } else {
+//                endIndex = startIndex + ((rowCount - 1) * columnCount) + 1;
+//            }
+//            Log.d(TAG, "recyclerAndFillView:travel > 0 startIndex=" + startIndex + "     endIndex=" + endIndex + "      lastVisibilityPos=" + mLastVisiPos);
+//            if (startIndex != mLastVisiPos) {
+//                mLastVisiPos = startIndex;
+//                step = columnCount;
+//                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + "  startIndex= " + startIndex + "        endIndex=" + endIndex);
+//                for (int i = startIndex; i <= endIndex; i += step) {
+//                    if (i >= 0 && i < getItemCount()) {
+//                        Log.d(TAG, "recyclerAndFillView travel > 0: index" + i);
+//                        Rect itemRang = getItemRang(i);
+//                        View viewForPosition = recycler.getViewForPosition(i);
+//                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+//                        layoutParams.width = childWidth;
+//                        layoutParams.height = childHeight;
+//                        viewForPosition.setLayoutParams(layoutParams);
+//                        addView(viewForPosition);
+//                        measureChild(viewForPosition, 0, 0);
+//                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+//                    }
+//                }
+//            }
+//        } else {
+//            int firstVisiPos = getFirstShouldVisiPos();
+//            if (getChildCount() > 0) {
+//                Log.d(TAG, "recyclerAndFillView:endIndex() ==  " + endIndex);
+//                if (firstVisiPos % getEachPageItemCount() == 0) {
+//                    startIndex = firstVisiPos - 1;
+//                    endIndex = startIndex - ((rowCount - 1) * columnCount);
+//                    Log.d(TAG, "recyclerAndFillView:getEachPageItemCount() == 0 ");
+//                } else {
+//                    endIndex = firstVisiPos - 1;
+//                    startIndex = endIndex + ((rowCount - 1) * columnCount);
+//                    Log.d(TAG, "recyclerAndFillView: getEachPageItemCount() ！=------------ 0");
+//                }
+//                if (startIndex < 0) {
+//                    startIndex = 0;
+//                }
+//                step = columnCount;
+//            }
+//            Log.d(TAG, "recyclerAndFillView:travel < 0 firstVisiPos=" + firstVisiPos + "      firstVisibilityPos=" + mFirstVisiPos);
+//            if (endIndex != mFirstVisiPos) {
+//                mFirstVisiPos = endIndex;
+//                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + " startIndex= " + startIndex + "        endIndex=" + endIndex);
+//                for (int i = startIndex; i >= endIndex; i -= step) {
+//                    if (i >= 0) {
+//                        Rect itemRang = getItemRang(i);
+//                        View viewForPosition = recycler.getViewForPosition(i);
+//                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+//                        layoutParams.width = childWidth;
+//                        layoutParams.height = childHeight;
+//                        viewForPosition.setLayoutParams(layoutParams);
+//                        addView(viewForPosition);
+//                        measureChild(viewForPosition, 0, 0);
+//                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+//                    }
+//                }
+//            }
+//        }
+        return travel;
+    }
+
+    private List<Integer> getVisibilityIndex(boolean reversal) {
+        ArrayList<Integer> integers = new ArrayList<>();
+        int firstShouldVisiPos = getFirstShouldVisiPos();
+        int pageRemainder = firstShouldVisiPos % getEachPageItemCount();
+        if (pageRemainder == 0) {
+            for (int i = 0; i < columnCount; i++) {
+                int index = firstShouldVisiPos + i;
+                Log.d(TAG, "getVisibilityIndex: index=" + index);
+                for (int j = 0; j < rowCount; j++) {
+                    integers.add(index);
+                    index += columnCount;
                 }
             }
-        } else if (travel > 0) {
-            startIndex = getLastShouldVisiPos();
-            Log.d(TAG, "recyclerAndFillView:travel > 0 startIndex=" + startIndex + "      lastVisibilityPos=" + mLastVisiPos);
-            if (startIndex % getEachPageItemCount() != 0) {
-                endIndex = startIndex;
-                startIndex = startIndex - ((rowCount - 1) * columnCount);
-            } else {
-                endIndex = startIndex + ((rowCount - 1) * columnCount) + 1;
-            }
-            if (startIndex != mLastVisiPos) {
-                mLastVisiPos = startIndex;
-                step = columnCount;
-                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + "  startIndex= " + startIndex + "        endIndex=" + endIndex);
-                for (int i = startIndex; i <= endIndex; i += step) {
-                    if (i >= 0 && i < getItemCount()) {
-                        Log.d(TAG, "recyclerAndFillView travel > 0: index" + i);
-                        Rect itemRang = getItemRang(i);
-                        View viewForPosition = recycler.getViewForPosition(i);
-                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                        layoutParams.width = childWidth;
-                        layoutParams.height = childHeight;
-                        viewForPosition.setLayoutParams(layoutParams);
-                        addView(viewForPosition);
-                        measureChild(viewForPosition, 0, 0);
-                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-                    }
-                }
+            int nextPageStart = getFirstShouldVisiPos() + getEachPageItemCount();
+            for (int i = 0; i < rowCount; i++) {
+                integers.add(nextPageStart);
+                nextPageStart++;
             }
         } else {
-            int firstVisiPos = getFirstShouldVisiPos();
-            Log.d(TAG, "recyclerAndFillView:travel < 0 firstVisiPos=" + firstVisiPos + "      firstVisibilityPos=" + mFirstVisiPos);
-            if (getChildCount() > 0) {
-                Log.d(TAG, "recyclerAndFillView:endIndex() ==  " + endIndex);
-                if (firstVisiPos % getEachPageItemCount() == 0) {
-                    startIndex = firstVisiPos - 1;
-                    endIndex = startIndex - ((rowCount - 1) * columnCount);
-                    Log.d(TAG, "recyclerAndFillView:getEachPageItemCount() == 0 ");
-                } else {
-                    endIndex = firstVisiPos - 1;
-                    startIndex = endIndex + ((rowCount - 1) * columnCount);
-                    Log.d(TAG, "recyclerAndFillView: getEachPageItemCount() ！=------------ 0");
+            int xx = columnCount - pageRemainder;
+            for (int i = 0; i < xx; i++) {
+                int index = firstShouldVisiPos + i;
+                for (int j = 0; j < rowCount; j++) {
+                    integers.add(index);
+                    index += columnCount;
                 }
-                if (startIndex < 0) {
-                    startIndex = 0;
-                }
-                step = columnCount;
             }
-            if (endIndex != mFirstVisiPos) {
-                mFirstVisiPos = endIndex;
-                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + " startIndex= " + startIndex + "        endIndex=" + endIndex);
-                for (int i = startIndex; i >= endIndex; i -= step) {
-                    if (i >= 0) {
-                        Rect itemRang = getItemRang(i);
-                        View viewForPosition = recycler.getViewForPosition(i);
-                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                        layoutParams.width = childWidth;
-                        layoutParams.height = childHeight;
-                        viewForPosition.setLayoutParams(layoutParams);
-                        addView(viewForPosition);
-                        measureChild(viewForPosition, 0, 0);
-                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-                    }
+            int yy = (firstShouldVisiPos / getEachPageItemCount() + 1) * getEachPageItemCount();
+            for (int i = 0; i <= pageRemainder; i++) {
+                int index = yy + i;
+                for (int j = 0; j < rowCount; j++) {
+                    integers.add(index);
+                    index += columnCount;
                 }
             }
         }
-        return travel;
+        if (reversal) {
+            Collections.reverse(integers);
+        }
+        return integers;
     }
 
     private Rect getItemRang(int adapterPos) {
