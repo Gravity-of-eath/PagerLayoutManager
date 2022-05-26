@@ -170,15 +170,12 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         int endIndex = getItemCount();
         int step = 1;
         if (travel == 0) {
-            startIndex = getFirstVisiPos();
+            startIndex = getFirstShouldVisiPos();
             endIndex = startIndex + getEachPageItemCount();
             for (int i = startIndex; i <= endIndex; i += step) {
                 if (i >= 0 && i < getItemCount()) {
                     Rect itemRang = getItemRang(i);
-//                    Rect visibleArea = getVisibleArea(mSumDx);
-//                    boolean intersects = Rect.intersects(itemRang, visibleArea);
                     View viewForPosition = recycler.getViewForPosition(i);
-//                    if (intersects) {
                     ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
                     layoutParams.width = childWidth;
                     layoutParams.height = childHeight;
@@ -186,46 +183,40 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                     addView(viewForPosition);
                     measureChild(viewForPosition, 0, 0);
                     layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-//                    }
                 }
             }
         } else if (travel > 0) {
-//            if (getChildCount() > 0) {
-//                View childAt = getChildAt(getChildCount() - 1);
-            startIndex = getLastVisiPos();
+            startIndex = getLastShouldVisiPos();
+            Log.d(TAG, "recyclerAndFillView:travel > 0 startIndex=" + startIndex + "      lastVisibilityPos=" + mLastVisiPos);
             if (startIndex % getEachPageItemCount() != 0) {
                 endIndex = startIndex;
                 startIndex = startIndex - ((rowCount - 1) * columnCount);
             } else {
                 endIndex = startIndex + ((rowCount - 1) * columnCount) + 1;
             }
-            step = columnCount;
-//            } else {
-//                startIndex = 0;
-//                endIndex = getEachPageItemCount();
-//            }
-            Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + "  startIndex= " + startIndex + "        endIndex=" + endIndex);
-            for (int i = startIndex; i <= endIndex; i += step) {
-                if (i >= 0 && i < getItemCount()) {
-                    Log.d(TAG, "recyclerAndFillView travel > 0: index" + i);
-                    Rect itemRang = getItemRang(i);
-//                    Rect visibleArea = getVisibleArea(mSumDx);
-//                    boolean intersects = Rect.intersects(itemRang, visibleArea);
-                    View viewForPosition = recycler.getViewForPosition(i);
-//                    if (intersects) {
-                    ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                    layoutParams.width = childWidth;
-                    layoutParams.height = childHeight;
-                    viewForPosition.setLayoutParams(layoutParams);
-                    addView(viewForPosition);
-                    measureChild(viewForPosition, 0, 0);
-                    layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-//                    }
+            if (startIndex != mLastVisiPos) {
+                mLastVisiPos = startIndex;
+                step = columnCount;
+                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + "  startIndex= " + startIndex + "        endIndex=" + endIndex);
+                for (int i = startIndex; i <= endIndex; i += step) {
+                    if (i >= 0 && i < getItemCount()) {
+                        Log.d(TAG, "recyclerAndFillView travel > 0: index" + i);
+                        Rect itemRang = getItemRang(i);
+                        View viewForPosition = recycler.getViewForPosition(i);
+                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+                        layoutParams.width = childWidth;
+                        layoutParams.height = childHeight;
+                        viewForPosition.setLayoutParams(layoutParams);
+                        addView(viewForPosition);
+                        measureChild(viewForPosition, 0, 0);
+                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+                    }
                 }
             }
         } else {
+            int firstVisiPos = getFirstShouldVisiPos();
+            Log.d(TAG, "recyclerAndFillView:travel < 0 firstVisiPos=" + firstVisiPos + "      firstVisibilityPos=" + mFirstVisiPos);
             if (getChildCount() > 0) {
-                int firstVisiPos = getFirstVisiPos();
                 Log.d(TAG, "recyclerAndFillView:endIndex() ==  " + endIndex);
                 if (firstVisiPos % getEachPageItemCount() == 0) {
                     startIndex = firstVisiPos - 1;
@@ -240,25 +231,22 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                     startIndex = 0;
                 }
                 step = columnCount;
-            } else {
             }
-            Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + " startIndex= " + startIndex + "        endIndex=" + endIndex);
-            for (int i = startIndex; i >= endIndex; i -= step) {
-                if (i >= 0) {
-                    Rect itemRang = getItemRang(i);
-//                    Rect visibleArea = getVisibleArea(mSumDx);
-//                    boolean intersects = Rect.intersects(itemRang, visibleArea);
-                    View viewForPosition = recycler.getViewForPosition(i);
-//                    Log.d(TAG, "recyclerAndFillView: " + "index= " + i + "  itemRang= " + itemRang + "        intersects=" + intersects);
-//                    if (intersects) {
-                    ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                    layoutParams.width = childWidth;
-                    layoutParams.height = childHeight;
-                    viewForPosition.setLayoutParams(layoutParams);
-                    addView(viewForPosition);
-                    measureChild(viewForPosition, 0, 0);
-                    layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-//                    }
+            if (endIndex != mFirstVisiPos) {
+                mFirstVisiPos = endIndex;
+                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + " startIndex= " + startIndex + "        endIndex=" + endIndex);
+                for (int i = startIndex; i >= endIndex; i -= step) {
+                    if (i >= 0) {
+                        Rect itemRang = getItemRang(i);
+                        View viewForPosition = recycler.getViewForPosition(i);
+                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+                        layoutParams.width = childWidth;
+                        layoutParams.height = childHeight;
+                        viewForPosition.setLayoutParams(layoutParams);
+                        addView(viewForPosition);
+                        measureChild(viewForPosition, 0, 0);
+                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+                    }
                 }
             }
         }
@@ -279,24 +267,25 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         return new Rect(left, top, left + childWidth, top + childHeight);
     }
 
-    private int getFirstVisiPos() {
+    private int getFirstShouldVisiPos() {
         int i = mSumDx / childWidth;
         int pageOffset = mSumDx / getWidth();
-        mFirstVisiPos = (pageOffset * getEachPageItemCount()) + (i % columnCount);
-        Log.d(TAG, "recyclerAndFillView mFirstVisiPos: " + mFirstVisiPos + "    pageOffset=" + pageOffset);
-        return mFirstVisiPos;
+        int firstShouldVisiPos = (pageOffset * getEachPageItemCount()) + (i % columnCount);
+        Log.d(TAG, "recyclerAndFillView firstShouldVisiPos: " + firstShouldVisiPos + "    pageOffset=" + pageOffset);
+        return firstShouldVisiPos;
     }
 
-    private int getLastVisiPos() {
+    private int getLastShouldVisiPos() {
         int i = mSumDx + getWidth() / childWidth;
         int pageOffset = (mSumDx + getWidth()) / getWidth();
-        mLastVisiPos = (pageOffset * getEachPageItemCount()) + (i % columnCount) + ((rowCount - 1) * columnCount);
-        if (mLastVisiPos >= getItemCount()) {
-            mLastVisiPos = getItemCount() - 1;
+        int lastShouldVisiPos = (pageOffset * getEachPageItemCount()) + (i % columnCount) + ((rowCount - 1) * columnCount);
+        if (lastShouldVisiPos >= getItemCount()) {
+            lastShouldVisiPos = getItemCount() - 1;
         }
-        Log.d(TAG, "recyclerAndFillView getLastVisiPos: " + mLastVisiPos + "    pageOffset=" + pageOffset);
-        return mLastVisiPos;
+        Log.d(TAG, "recyclerAndFillView lastShouldVisiPos: " + lastShouldVisiPos + "    pageOffset=" + pageOffset);
+        return lastShouldVisiPos;
     }
+
 
     @Override
     public void onScrollStateChanged(int state) {
