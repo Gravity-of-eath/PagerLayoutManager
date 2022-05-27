@@ -1,6 +1,8 @@
 package com.ysp.mqcq02_applist;
 
-import android.content.Context;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.graphics.Rect;
 import android.util.Log;
 import android.util.SparseArray;
@@ -14,36 +16,27 @@ import java.util.Collections;
 import java.util.List;
 
 public class PagerLayoutManager extends RecyclerView.LayoutManager {
-    private static final String TAG = "PageLayoutManager";
+    private static final String TAG = "PgLayoutManager";
+
     private int rowCount = 4;
     private int columnCount = 3;
-    private Context context;
     private int childWidth;
     private int childHeight;
     private int currentPage = 0;
     private int pageCount;
-    private int mFirstVisiPos;//屏幕可见的第一个View的Position
-    private int mLastVisiPos;//屏幕可见的最后一个View的Position
+    private int mSumDx = 0;
+    private SparseArray<View> currentDisplayViews = new SparseArray<>();
+    private List<Integer> lastDisplayIndex = new ArrayList<>();
+    private ValueAnimator mAnimator;
 
-    public PagerLayoutManager(int rowCount, int columnCount, Context context) {
+    public PagerLayoutManager(int rowCount, int columnCount) {
         this.rowCount = rowCount;
         this.columnCount = columnCount;
-        if (rowCount < 1 || columnCount < 1) {
-            throw new IllegalArgumentException("rowCount or columnCount < 1");
-        }
-        this.context = context;
     }
 
     @Override
     public RecyclerView.LayoutParams generateDefaultLayoutParams() {
-        return new RecyclerView.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    }
-
-    private SparseArray<Rect> mItemRects = new SparseArray<>();
-
-
-    private int getEachPageItemCount() {
-        return rowCount * columnCount;
+        return new RecyclerView.LayoutParams(RecyclerView.LayoutParams.WRAP_CONTENT, RecyclerView.LayoutParams.WRAP_CONTENT);
     }
 
     @Override
@@ -59,13 +52,154 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         childWidth = getWidth() / columnCount;
         childHeight = getHeight() / rowCount;
         pageCount = getItemCount() / getEachPageItemCount() + (getItemCount() % getEachPageItemCount() == 0 ? 0 : 1);
-        Log.d(TAG, "onLayoutChildren:pageCount= " + pageCount + "   getItemCount()=" + getItemCount());
-        Log.d(TAG, "onLayoutChildren:childWidth= " + childWidth + "   childHeight=" + childHeight);
-        detachAndScrapAttachedViews(recycler);
-        recyclerAndFillView(recycler, state, 0);
+
+        removeAndRecycleAllViews(recycler);
+        currentDisplayViews.clear();
+        lastDisplayIndex.clear();
+        reLayoutViews(recycler, state, 0);
     }
 
-    private int mSumDx = 0;
+
+    private int reLayoutViews(RecyclerView.Recycler recycler, RecyclerView.State state, int dx) {
+        List<Integer> visibilityIndex = getVisibilityIndex(dx < 0);
+        if (visibilityIndex.isEmpty() || state.getItemCount() == 0) {
+            removeAndRecycleAllViews(recycler);
+            return 0;
+        }
+        if (lastDisplayIndex != null && !lastDisplayIndex.isEmpty()) {
+            List<Integer> willRemove = removeListTwo4ListOne(lastDisplayIndex, visibilityIndex);
+            List<Integer> willAdd = removeListTwo4ListOne(visibilityIndex, lastDisplayIndex);
+            if (!willRemove.isEmpty()) {
+                for (Integer i : willRemove) {
+                    Log.e(TAG, "recyclerAndFillView: willRemove" + i);
+                    View view = currentDisplayViews.get(i);
+                    if (view != null) {
+                        removeAndRecycleView(view, recycler);
+                        currentDisplayViews.remove(i);
+                    }
+                }
+            }
+            if (!willAdd.isEmpty()) {
+                for (Integer i : willAdd) {
+                    Log.e(TAG, "recyclerAndFillView: willAdd" + i);
+                    if (i >= 0 && i < getItemCount()) {
+                        Rect itemRang = getItemRang(i);
+                        View viewForPosition = recycler.getViewForPosition(i);
+                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+                        layoutParams.width = childWidth;
+                        layoutParams.height = childHeight;
+                        viewForPosition.setLayoutParams(layoutParams);
+                        addView(viewForPosition);
+                        measureChild(viewForPosition, 0, 0);
+                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+                        currentDisplayViews.put(i, viewForPosition);
+                    }
+                }
+            }
+        } else {
+            for (Integer i : visibilityIndex) {
+                Log.e(TAG, "recyclerAndFillView: visibilityIndex" + i);
+                if (i >= 0 && i < getItemCount()) {
+                    Rect itemRang = getItemRang(i);
+                    View viewForPosition = recycler.getViewForPosition(i);
+                    ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
+                    layoutParams.width = childWidth;
+                    layoutParams.height = childHeight;
+                    viewForPosition.setLayoutParams(layoutParams);
+                    addView(viewForPosition);
+                    measureChild(viewForPosition, 0, 0);
+                    layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
+                    currentDisplayViews.put(i, viewForPosition);
+                }
+            }
+        }
+        lastDisplayIndex = visibilityIndex;
+        return 0;
+    }
+
+
+    @Override
+    public void onScrollStateChanged(int state) {
+        super.onScrollStateChanged(state);
+        if (state == RecyclerView.SCROLL_STATE_IDLE) {
+            Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_IDLE");
+            smoothScrollToPage(currentPage);
+        }
+    }
+
+    public void smoothScrollToPage(int page) {
+        if (page > -1 && page < pageCount) {
+            stopFixingAnimation();
+            Log.d(TAG, "smoothScrollToPage: page=" + page + "     mSumDx=" + mSumDx);
+            mAnimator = ValueAnimator.ofFloat(0, page * getWidth() - mSumDx).setDuration(250);
+            mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                private float mLastScrollOffset;
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    float currentValue = (float) animation.getAnimatedValue();
+                    float offset = currentValue - mLastScrollOffset;
+                    mSumDx += offset;
+                    requestLayout();
+                    mLastScrollOffset = currentValue;
+                }
+            });
+            mAnimator.addListener(new AnimatorListenerAdapter() {
+
+                boolean isCanceled;
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                    isCanceled = true;
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mAnimator = null;
+                }
+            });
+            mAnimator.start();
+        }
+    }
+
+
+    private void stopFixingAnimation() {
+        if (mAnimator != null && mAnimator.isRunning()) {
+            mAnimator.cancel();
+        }
+    }
+
+    private int findSelectPositionPage(int position) {
+        return position / getEachPageItemCount() + (position % getEachPageItemCount() == 0 ? 0 : 1);
+    }
+
+    @Override
+    public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state,
+                                       int position) {
+        smoothScrollToPage(findSelectPositionPage(position));
+    }
+
+    @Override
+    public void onAdapterChanged(RecyclerView.Adapter oldAdapter, RecyclerView.Adapter
+            newAdapter) {
+        removeAllViews();
+    }
+
+    private List<Integer> removeListTwo4ListOne(List<Integer> list1, List<Integer> list2) {
+        ArrayList<Integer> integers = new ArrayList<>();
+        for (Integer i : list1) {
+            if (list2.contains(i)) {
+            } else {
+                integers.add(i);
+            }
+        }
+        return integers;
+    }
+
+    @Override
+    public boolean canScrollHorizontally() {
+        return true;
+    }
 
     @Override
     public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
@@ -88,51 +222,24 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         if (dx < 0 && pageOffset < (getWidth() * 4 / 5) && pagePos != currentPage) {
             currentPage = pagePos;
         }
-        recyclerAndFillView(recycler, state, travel);
+        reLayoutViews(recycler, state, dx);
         mSumDx += travel;
         offsetChildrenHorizontal(-travel);
         return travel;
-//
     }
 
-    private void recycleChildren(RecyclerView.Recycler recycler) {
-        List<RecyclerView.ViewHolder> scrapList = recycler.getScrapList();
-        Log.d(TAG, "recycleChildren: scrapList=" + scrapList.size());
-        for (int i = 0; i < scrapList.size(); i++) {
-            RecyclerView.ViewHolder holder = scrapList.get(i);
-            removeView(holder.itemView);
-            recycler.recycleView(holder.itemView);
+    private Rect getItemRang(int adapterPos) {
+        if (adapterPos == 21 || adapterPos == 22) {
+            Log.d(TAG, "getItemRang: ");
         }
-    }
-
-    private int recyclerAndFillView(RecyclerView.Recycler recycler, RecyclerView.State state, int travel) {
-
-//        for (int i = 0; i < getChildCount(); i++) {
-//            View childAt = getChildAt(i);
-//            removeAndRecycleView(childAt, recycler);
-//        }
-        List<Integer> visibilityIndex = getVisibilityIndex(travel < 0);
-        if (visibilityIndex.isEmpty() || state.getItemCount() == 0) {
-            removeAndRecycleAllViews(recycler);
-            return 0;
-        }
-        Log.e(TAG, "recyclerAndFillView: getVisibilityIndex size=" + visibilityIndex.size());
-        for (Integer i : visibilityIndex) {
-            Log.e(TAG, "recyclerAndFillView: visibilityIndex" + i);
-            if (i >= 0 && i < getItemCount()) {
-                Rect itemRang = getItemRang(i);
-                View viewForPosition = recycler.getViewForPosition(i);
-                ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                layoutParams.width = childWidth;
-                layoutParams.height = childHeight;
-                viewForPosition.setLayoutParams(layoutParams);
-                addView(viewForPosition);
-                measureChild(viewForPosition, 0, 0);
-                layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-            }
-        }
-        recycleChildren(recycler);
-        return travel;
+        int pageItemCount = getEachPageItemCount();
+        int pageIndex = adapterPos / pageItemCount;
+        int index = adapterPos % pageItemCount;
+        int columnIndex = index / columnCount;
+        int rowIndex = index % columnCount;
+        int left = (pageIndex * getWidth()) + rowIndex * childWidth;
+        int top = columnIndex * childHeight;
+        return new Rect(left, top, left + childWidth, top + childHeight);
     }
 
     private List<Integer> getVisibilityIndex(boolean reversal) {
@@ -177,92 +284,16 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         return integers;
     }
 
-    private Rect getItemRang(int adapterPos) {
-        if (adapterPos == 21 || adapterPos == 22) {
-            Log.d(TAG, "getItemRang: ");
-        }
-        int pageItemCount = getEachPageItemCount();
-        int pageIndex = adapterPos / pageItemCount;
-        int index = adapterPos % pageItemCount;
-        int columnIndex = index / columnCount;
-        int rowIndex = index % columnCount;
-        int left = (pageIndex * getWidth()) + rowIndex * childWidth;
-        int top = columnIndex * childHeight;
-        return new Rect(left, top, left + childWidth, top + childHeight);
-    }
 
     private int getFirstShouldVisiPos() {
         int i = mSumDx / childWidth;
         int pageOffset = mSumDx / getWidth();
         int firstShouldVisiPos = (pageOffset * getEachPageItemCount()) + (i % columnCount);
-        Log.d(TAG, "recyclerAndFillView firstShouldVisiPos: " + firstShouldVisiPos + "    pageOffset=" + pageOffset);
         return firstShouldVisiPos;
     }
 
-    private int getLastShouldVisiPos() {
-        int i = mSumDx + getWidth() / childWidth;
-        int pageOffset = (mSumDx + getWidth()) / getWidth();
-        int lastShouldVisiPos = (pageOffset * getEachPageItemCount()) + (i % columnCount) + ((rowCount - 1) * columnCount);
-        if (lastShouldVisiPos >= getItemCount()) {
-            lastShouldVisiPos = getItemCount() - 1;
-        }
-        Log.d(TAG, "recyclerAndFillView lastShouldVisiPos: " + lastShouldVisiPos + "    pageOffset=" + pageOffset);
-        return lastShouldVisiPos;
-    }
-
-
-    @Override
-    public void onScrollStateChanged(int state) {
-        super.onScrollStateChanged(state);
-        switch (state) {
-            case RecyclerView.SCROLL_STATE_DRAGGING:
-                Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_DRAGGING");
-                break;
-            case RecyclerView.SCROLL_STATE_IDLE:
-                smoothScrollToPage(currentPage);
-                Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_IDLE");
-                break;
-            case RecyclerView.SCROLL_STATE_SETTLING:
-                Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_SETTLING");
-                break;
-        }
-    }
-
-    private int findSelectPositionPage(int position) {
-        return position / getEachPageItemCount() + (position % getEachPageItemCount() == 0 ? 0 : 1);
-    }
-
-    @Override
-    public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state,
-                                       int position) {
-        smoothScrollToPage(findSelectPositionPage(position));
-    }
-
-    public void smoothScrollToPage(int page) {
-        if (page > -1 && page < pageCount) {
-//            int i = mSumDx - page * getWidth();
-//            offsetChildrenHorizontal(i);
-            mSumDx = page * getWidth();
-            requestLayout();
-            Log.d(TAG, "smoothScrollToPage: page=" + page + "     mSumDx=" + mSumDx);
-        }
-    }
-
-    @Override
-    public void onAdapterChanged(RecyclerView.Adapter oldAdapter, RecyclerView.Adapter
-            newAdapter) {
-        //Completely scrap the existing layout
-        removeAllViews();
-    }
-
-    @Override
-    public boolean canScrollHorizontally() {
-        return true;
-    }
-
-    @Override
-    public boolean canScrollVertically() {
-        return false;
+    private int getEachPageItemCount() {
+        return rowCount * columnCount;
     }
 
 }
