@@ -107,10 +107,10 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
 
     private int recyclerAndFillView(RecyclerView.Recycler recycler, RecyclerView.State state, int travel) {
 
-        for (int i = 0; i < getChildCount(); i++) {
-            View childAt = getChildAt(i);
-            removeAndRecycleView(childAt, recycler);
-        }
+//        for (int i = 0; i < getChildCount(); i++) {
+//            View childAt = getChildAt(i);
+//            removeAndRecycleView(childAt, recycler);
+//        }
         List<Integer> visibilityIndex = getVisibilityIndex(travel < 0);
         if (visibilityIndex.isEmpty() || state.getItemCount() == 0) {
             removeAndRecycleAllViews(recycler);
@@ -131,7 +131,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                 layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
             }
         }
-//        recycleChildren(recycler);
+        recycleChildren(recycler);
         return travel;
     }
 
@@ -151,7 +151,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
             int nextPageStart = getFirstShouldVisiPos() + getEachPageItemCount();
             for (int i = 0; i < rowCount; i++) {
                 integers.add(nextPageStart);
-                nextPageStart++;
+                nextPageStart += columnCount;
             }
         } else {
             int xx = columnCount - pageRemainder;

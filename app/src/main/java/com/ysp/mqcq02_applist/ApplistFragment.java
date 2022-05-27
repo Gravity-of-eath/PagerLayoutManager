@@ -59,7 +59,7 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
 //                        .maxLayerCount(3)
 //                        .build();
 //        app_list.setLayoutManager(focusLayoutManager);
-        app_list.setLayoutManager(new PagerLayoutManager(3, 4, getContext()));
+        app_list.setLayoutManager(new PagerLayoutManager(4, 3, getContext()));
 //        Path path = new Path();
 //        path.moveTo(100, 100);
 //        path.arcTo(100, 100, 1000, 1000, 90, 180,true);
