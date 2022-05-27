@@ -48,15 +48,20 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
-        detachAndScrapAttachedViews(recycler);
+        if (state.getItemCount() == 0) {
+            removeAndRecycleAllViews(recycler);
+            return;
+        }
         if (getItemCount() <= 0) {
             return;
         }
+        recycler.setViewCacheSize((rowCount + 1) * columnCount);
         childWidth = getWidth() / columnCount;
         childHeight = getHeight() / rowCount;
         pageCount = getItemCount() / getEachPageItemCount() + (getItemCount() % getEachPageItemCount() == 0 ? 0 : 1);
         Log.d(TAG, "onLayoutChildren:pageCount= " + pageCount + "   getItemCount()=" + getItemCount());
         Log.d(TAG, "onLayoutChildren:childWidth= " + childWidth + "   childHeight=" + childHeight);
+        detachAndScrapAttachedViews(recycler);
         recyclerAndFillView(recycler, state, 0);
     }
 
@@ -77,13 +82,11 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         }
         int pageOffset = mSumDx % getWidth();
         int pagePos = mSumDx / getWidth();
-        if (dx > 0 && pageOffset > (getWidth() * 3 / 5) && pagePos + 1 != currentPage) {
-            currentPage = pagePos + 1;//right
-//            addRightPage(recycler);
+        if (dx > 0 && pageOffset > (getWidth() * 1 / 5) && pagePos + 1 != currentPage) {
+            currentPage = pagePos + 1;
         }
-        if (dx < 0 && pageOffset < (getWidth() * 2 / 5) && pagePos != currentPage) {
+        if (dx < 0 && pageOffset < (getWidth() * 4 / 5) && pagePos != currentPage) {
             currentPage = pagePos;
-//            addLeftPage(recycler);
         }
         recyclerAndFillView(recycler, state, travel);
         mSumDx += travel;
@@ -92,69 +95,9 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
 //
     }
 
-    private Rect getVisibleArea(int travel) {
-        Rect result = new Rect(travel, 0, getWidth() + travel, getHeight());
-        return result;
-    }
-
-    private synchronized void addLeftPage(RecyclerView.Recycler recycler) {
-        int willAddPageIndex = currentPage - 1;
-        Log.d(TAG, "addFirstPage: willAddPageIndex=" + willAddPageIndex);
-        if (willAddPageIndex < 0) {
-            return;
-        }
-        int firstAddIndex = willAddPageIndex * (columnCount * rowCount);
-        Log.d(TAG, "addFirstPage: firstAddIndex=" + firstAddIndex + "  getChildCount=" + getChildCount());
-        for (int i = 0; i < rowCount; i++) {
-            for (int j = 0; j < columnCount; j++) {
-                View viewForPosition = recycler.getViewForPosition(firstAddIndex);
-                ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                layoutParams.width = childWidth;
-                layoutParams.height = childHeight;
-                viewForPosition.setLayoutParams(layoutParams);
-                addView(viewForPosition);
-                measureChild(viewForPosition, 0, 0);
-                int left = j * childWidth + (willAddPageIndex * getWidth()) - mSumDx;
-                int top = i * childHeight;
-                layoutDecorated(viewForPosition, left, top, left + childWidth, top + childHeight);
-                firstAddIndex++;
-            }
-        }
-    }
-
-    private synchronized void addRightPage(RecyclerView.Recycler recycler) {
-        int willAddPageIndex = currentPage + 1;
-        Log.d(TAG, "addLastPage: willAddPageIndex=" + willAddPageIndex);
-        if (willAddPageIndex >= pageCount) {
-            return;
-        }
-        int firstAddIndex = willAddPageIndex * (columnCount * rowCount);
-        Log.d(TAG, "addLastPage: firstAddIndex=" + firstAddIndex + "  getChildCount=" + getChildCount());
-        for (int i = 0; i < rowCount; i++) {
-            for (int j = 0; j < columnCount; j++) {
-                View viewForPosition = recycler.getViewForPosition(firstAddIndex);
-                ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-                layoutParams.width = childWidth;
-                layoutParams.height = childHeight;
-                viewForPosition.setLayoutParams(layoutParams);
-                addView(viewForPosition);
-                measureChild(viewForPosition, 0, 0);
-                int left = j * childWidth + (willAddPageIndex * getWidth()) - mSumDx;
-                int top = i * childHeight;
-                layoutDecorated(viewForPosition, left, top, left + childWidth, top + childHeight);
-                firstAddIndex++;
-                if (firstAddIndex >= getItemCount()) {
-                    break;
-                }
-            }
-            if (firstAddIndex >= getItemCount()) {
-                break;
-            }
-        }
-    }
-
     private void recycleChildren(RecyclerView.Recycler recycler) {
         List<RecyclerView.ViewHolder> scrapList = recycler.getScrapList();
+        Log.d(TAG, "recycleChildren: scrapList=" + scrapList.size());
         for (int i = 0; i < scrapList.size(); i++) {
             RecyclerView.ViewHolder holder = scrapList.get(i);
             removeView(holder.itemView);
@@ -163,22 +106,16 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
     }
 
     private int recyclerAndFillView(RecyclerView.Recycler recycler, RecyclerView.State state, int travel) {
-        //回收越界子View
-//        for (int i = getChildCount() - 1; i >= 0; i--) {
-//            View child = getChildAt(i);
-//            if (travel >= 0) {//需要回收当前屏幕，左越界的View
-//                if (getDecoratedRight(child) - travel < 0) {
-//                    removeAndRecycleView(child, recycler);
-//                    Log.d(TAG, "scrollHorizontallyBy:travel > 0 removeAndRecycleView i=" + i);
-//                }
-//            } else if (travel < 0) {//回收当前屏幕，右越界的View
-//                if (getDecoratedLeft(child) - travel > getWidth()) {
-//                    removeAndRecycleView(child, recycler);
-//                    Log.d(TAG, "scrollHorizontallyBy:travel < 0 removeAndRecycleView i=" + i);
-//                }
-//            }
-//        }
+
+        for (int i = 0; i < getChildCount(); i++) {
+            View childAt = getChildAt(i);
+            removeAndRecycleView(childAt, recycler);
+        }
         List<Integer> visibilityIndex = getVisibilityIndex(travel < 0);
+        if (visibilityIndex.isEmpty() || state.getItemCount() == 0) {
+            removeAndRecycleAllViews(recycler);
+            return 0;
+        }
         Log.e(TAG, "recyclerAndFillView: getVisibilityIndex size=" + visibilityIndex.size());
         for (Integer i : visibilityIndex) {
             Log.e(TAG, "recyclerAndFillView: visibilityIndex" + i);
@@ -194,91 +131,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                 layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
             }
         }
-        recycleChildren(recycler);
-//        int startIndex = 0;
-//        int endIndex = getItemCount();
-//        int step = 1;
-//        if (travel == 0) {
-//            startIndex = getFirstShouldVisiPos();
-//            endIndex = startIndex + getEachPageItemCount();
-//            for (int i = startIndex; i <= endIndex; i += step) {
-//                if (i >= 0 && i < getItemCount()) {
-//                    Rect itemRang = getItemRang(i);
-//                    View viewForPosition = recycler.getViewForPosition(i);
-//                    ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-//                    layoutParams.width = childWidth;
-//                    layoutParams.height = childHeight;
-//                    viewForPosition.setLayoutParams(layoutParams);
-//                    addView(viewForPosition);
-//                    measureChild(viewForPosition, 0, 0);
-//                    layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-//                }
-//            }
-//        } else if (travel > 0) {
-//            startIndex = getLastShouldVisiPos();
-//            if (startIndex % getEachPageItemCount() != 0) {
-//                endIndex = startIndex;
-//                startIndex = startIndex - ((rowCount - 1) * columnCount);
-//            } else {
-//                endIndex = startIndex + ((rowCount - 1) * columnCount) + 1;
-//            }
-//            Log.d(TAG, "recyclerAndFillView:travel > 0 startIndex=" + startIndex + "     endIndex=" + endIndex + "      lastVisibilityPos=" + mLastVisiPos);
-//            if (startIndex != mLastVisiPos) {
-//                mLastVisiPos = startIndex;
-//                step = columnCount;
-//                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + "  startIndex= " + startIndex + "        endIndex=" + endIndex);
-//                for (int i = startIndex; i <= endIndex; i += step) {
-//                    if (i >= 0 && i < getItemCount()) {
-//                        Log.d(TAG, "recyclerAndFillView travel > 0: index" + i);
-//                        Rect itemRang = getItemRang(i);
-//                        View viewForPosition = recycler.getViewForPosition(i);
-//                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-//                        layoutParams.width = childWidth;
-//                        layoutParams.height = childHeight;
-//                        viewForPosition.setLayoutParams(layoutParams);
-//                        addView(viewForPosition);
-//                        measureChild(viewForPosition, 0, 0);
-//                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-//                    }
-//                }
-//            }
-//        } else {
-//            int firstVisiPos = getFirstShouldVisiPos();
-//            if (getChildCount() > 0) {
-//                Log.d(TAG, "recyclerAndFillView:endIndex() ==  " + endIndex);
-//                if (firstVisiPos % getEachPageItemCount() == 0) {
-//                    startIndex = firstVisiPos - 1;
-//                    endIndex = startIndex - ((rowCount - 1) * columnCount);
-//                    Log.d(TAG, "recyclerAndFillView:getEachPageItemCount() == 0 ");
-//                } else {
-//                    endIndex = firstVisiPos - 1;
-//                    startIndex = endIndex + ((rowCount - 1) * columnCount);
-//                    Log.d(TAG, "recyclerAndFillView: getEachPageItemCount() ！=------------ 0");
-//                }
-//                if (startIndex < 0) {
-//                    startIndex = 0;
-//                }
-//                step = columnCount;
-//            }
-//            Log.d(TAG, "recyclerAndFillView:travel < 0 firstVisiPos=" + firstVisiPos + "      firstVisibilityPos=" + mFirstVisiPos);
-//            if (endIndex != mFirstVisiPos) {
-//                mFirstVisiPos = endIndex;
-//                Log.d(TAG, "recyclerAndFillView: " + "travel=" + travel + " startIndex= " + startIndex + "        endIndex=" + endIndex);
-//                for (int i = startIndex; i >= endIndex; i -= step) {
-//                    if (i >= 0) {
-//                        Rect itemRang = getItemRang(i);
-//                        View viewForPosition = recycler.getViewForPosition(i);
-//                        ViewGroup.LayoutParams layoutParams = viewForPosition.getLayoutParams();
-//                        layoutParams.width = childWidth;
-//                        layoutParams.height = childHeight;
-//                        viewForPosition.setLayoutParams(layoutParams);
-//                        addView(viewForPosition);
-//                        measureChild(viewForPosition, 0, 0);
-//                        layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
-//                    }
-//                }
-//            }
-//        }
+//        recycleChildren(recycler);
         return travel;
     }
 
@@ -366,8 +219,8 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                 Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_DRAGGING");
                 break;
             case RecyclerView.SCROLL_STATE_IDLE:
-                Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_IDLE");
                 smoothScrollToPage(currentPage);
+                Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_IDLE");
                 break;
             case RecyclerView.SCROLL_STATE_SETTLING:
                 Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_SETTLING");
@@ -387,6 +240,8 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
 
     public void smoothScrollToPage(int page) {
         if (page > -1 && page < pageCount) {
+//            int i = mSumDx - page * getWidth();
+//            offsetChildrenHorizontal(i);
             mSumDx = page * getWidth();
             requestLayout();
             Log.d(TAG, "smoothScrollToPage: page=" + page + "     mSumDx=" + mSumDx);
