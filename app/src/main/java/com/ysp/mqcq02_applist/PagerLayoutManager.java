@@ -28,6 +28,12 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
     private SparseArray<View> currentDisplayViews = new SparseArray<>();
     private List<Integer> lastDisplayIndex = new ArrayList<>();
     private ValueAnimator mAnimator;
+    private OnPageChangeListener listener;
+
+    public PagerLayoutManager setPageChangeListener(OnPageChangeListener listener) {
+        this.listener = listener;
+        return this;
+    }
 
     public PagerLayoutManager(int rowCount, int columnCount) {
         this.rowCount = rowCount;
@@ -121,9 +127,11 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public void onScrollStateChanged(int state) {
         super.onScrollStateChanged(state);
+        Log.d(TAG, "onScrollStateChanged: SCROLL_STATE== " + state);
         if (state == RecyclerView.SCROLL_STATE_IDLE) {
-            Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_IDLE");
             smoothScrollToPage(currentPage);
+        } else if (state == RecyclerView.SCROLL_STATE_DRAGGING) {
+            stopFixingAnimation();
         }
     }
 
@@ -131,7 +139,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         if (page > -1 && page < pageCount) {
             stopFixingAnimation();
             Log.d(TAG, "smoothScrollToPage: page=" + page + "     mSumDx=" + mSumDx);
-            mAnimator = ValueAnimator.ofFloat(0, page * getWidth() - mSumDx).setDuration(250);
+            mAnimator = ValueAnimator.ofFloat(0, page * getWidth() - mSumDx).setDuration(1250);
             mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 private float mLastScrollOffset;
 
@@ -159,6 +167,9 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                 }
             });
             mAnimator.start();
+            if (listener != null) {
+                listener.onPageChange(currentPage);
+            }
         }
     }
 
@@ -216,10 +227,10 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         }
         int pageOffset = mSumDx % getWidth();
         int pagePos = mSumDx / getWidth();
-        if (dx > 0 && pageOffset > (getWidth() * 1 / 5) && pagePos + 1 != currentPage) {
+        if (dx > 0 && pageOffset > (getWidth() * 2 / 5) && pagePos + 1 != currentPage) {
             currentPage = pagePos + 1;
         }
-        if (dx < 0 && pageOffset < (getWidth() * 4 / 5) && pagePos != currentPage) {
+        if (dx < 0 && pageOffset < (getWidth() * 3 / 5) && pagePos != currentPage) {
             currentPage = pagePos;
         }
         reLayoutViews(recycler, state, dx);
@@ -294,6 +305,11 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
 
     private int getEachPageItemCount() {
         return rowCount * columnCount;
+    }
+
+
+    public interface OnPageChangeListener {
+        void onPageChange(int page);
     }
 
 }

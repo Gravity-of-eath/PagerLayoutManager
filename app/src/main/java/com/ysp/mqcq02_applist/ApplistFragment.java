@@ -12,15 +12,17 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import java.util.List;
 
 
-public class ApplistFragment extends Fragment implements AppFinder.AppFindListener, AppClickListener {
+public class ApplistFragment extends Fragment implements AppFinder.AppFindListener, AppClickListener, PagerLayoutManager.OnPageChangeListener {
 
     private RecyclerView app_list;
     private ApplistAdapter applistAdapter;
     private PagerSnapHelper helper;
+    TextView indicator_text;
 
     public ApplistFragment() {
     }
@@ -39,25 +41,10 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_applist, container, false);
+        indicator_text = view.findViewById(R.id.indicator_text);
         app_list = view.findViewById(R.id.app_list);
-        StaggeredGridLayoutManager staggeredGridLayoutManager = new StaggeredGridLayoutManager(3, RecyclerView.HORIZONTAL);
-        staggeredGridLayoutManager.setGapStrategy(0);
         app_list.setAdapter(applistAdapter);
-//        helper.attachToRecyclerView(app_list);
-//        FocusLayoutManager focusLayoutManager =
-//                new FocusLayoutManager.Builder()
-//                        .layerPadding(22)
-//                        .normalViewGap(22)
-//                        .focusOrientation(FocusLayoutManager.FOCUS_LEFT)
-//                        .isAutoSelect(true)
-//                        .maxLayerCount(3)
-//                        .build();
-//        app_list.setLayoutManager(focusLayoutManager);
-        app_list.setLayoutManager(new PagerLayoutManager(5, 4));
-//        Path path = new Path();
-//        path.moveTo(100, 100);
-//        path.arcTo(100, 100, 1000, 1000, 90, 180,true);
-//        app_list.setLayoutManager(new PathLayoutManager(path, 380));
+        app_list.setLayoutManager(new PagerLayoutManager(5, 4).setPageChangeListener(this));
         return view;
     }
 
@@ -74,6 +61,11 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
 
     @Override
     public void onAppClick(ApplicationInformation info) {
-//        startActivity(info.launchIntent);
+        startActivity(info.launchIntent);
+    }
+
+    @Override
+    public void onPageChange(int page) {
+        indicator_text.setText("" + page);
     }
 }
