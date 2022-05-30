@@ -29,6 +29,8 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
     private List<Integer> lastDisplayIndex = new ArrayList<>();
     private ValueAnimator mAnimator;
     private OnPageChangeListener listener;
+    private RecyclerView.Recycler mRecycler;
+    RecyclerView.State mState;
 
     public PagerLayoutManager setPageChangeListener(OnPageChangeListener listener) {
         this.listener = listener;
@@ -54,14 +56,12 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         if (getItemCount() <= 0) {
             return;
         }
+        mRecycler = recycler;
+        mState = state;
         recycler.setViewCacheSize((rowCount + 1) * columnCount);
         childWidth = getWidth() / columnCount;
         childHeight = getHeight() / rowCount;
         pageCount = getItemCount() / getEachPageItemCount() + (getItemCount() % getEachPageItemCount() == 0 ? 0 : 1);
-
-        removeAndRecycleAllViews(recycler);
-        currentDisplayViews.clear();
-        lastDisplayIndex.clear();
         reLayoutViews(recycler, state, 0);
     }
 
@@ -82,6 +82,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                     if (view != null) {
                         removeAndRecycleView(view, recycler);
                         currentDisplayViews.remove(i);
+                        lastDisplayIndex.remove(i);
                     }
                 }
             }
@@ -99,10 +100,12 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                         measureChild(viewForPosition, 0, 0);
                         layoutDecorated(viewForPosition, itemRang.left - mSumDx, itemRang.top, itemRang.right - mSumDx, itemRang.bottom);
                         currentDisplayViews.put(i, viewForPosition);
+                        lastDisplayIndex.add(i);
                     }
                 }
             }
         } else {
+            clearCache();
             for (Integer i : visibilityIndex) {
                 Log.e(TAG, "recyclerAndFillView: visibilityIndex" + i);
                 if (i >= 0 && i < getItemCount()) {
@@ -118,8 +121,8 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                     currentDisplayViews.put(i, viewForPosition);
                 }
             }
+            lastDisplayIndex = visibilityIndex;
         }
-        lastDisplayIndex = visibilityIndex;
         return 0;
     }
 
@@ -136,10 +139,11 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
     }
 
     public void smoothScrollToPage(int page) {
+        currentPage = page;
         if (page > -1 && page < pageCount) {
             stopFixingAnimation();
             Log.d(TAG, "smoothScrollToPage: page=" + page + "     mSumDx=" + mSumDx);
-            mAnimator = ValueAnimator.ofFloat(0, page * getWidth() - mSumDx).setDuration(1250);
+            mAnimator = ValueAnimator.ofFloat(0, page * getWidth() - mSumDx).setDuration(250);
             mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 private float mLastScrollOffset;
 
@@ -148,7 +152,8 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
                     float currentValue = (float) animation.getAnimatedValue();
                     float offset = currentValue - mLastScrollOffset;
                     mSumDx += offset;
-                    requestLayout();
+                    offsetChildrenHorizontal((int) -offset);
+                    reLayoutViews(mRecycler, mState, (int) offset);
                     mLastScrollOffset = currentValue;
                 }
             });
@@ -187,13 +192,25 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state,
                                        int position) {
+        mState = state;
         smoothScrollToPage(findSelectPositionPage(position));
     }
 
     @Override
     public void onAdapterChanged(RecyclerView.Adapter oldAdapter, RecyclerView.Adapter
             newAdapter) {
+        clearCache();
         removeAllViews();
+        requestLayout();
+    }
+
+    private void clearCache() {
+        if (currentDisplayViews != null) {
+            currentDisplayViews.clear();
+        }
+        if (lastDisplayIndex != null) {
+            lastDisplayIndex.clear();
+        }
     }
 
     private List<Integer> removeListTwo4ListOne(List<Integer> list1, List<Integer> list2) {
@@ -212,11 +229,13 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         return true;
     }
 
+
     @Override
     public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
         if (getChildCount() <= 0) {
             return dx;
         }
+        mState = state;
         int travel = dx;
         //如果滑动到最左边
         if (mSumDx + dx < 0) {
@@ -240,9 +259,6 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
     }
 
     private Rect getItemRang(int adapterPos) {
-        if (adapterPos == 21 || adapterPos == 22) {
-            Log.d(TAG, "getItemRang: ");
-        }
         int pageItemCount = getEachPageItemCount();
         int pageIndex = adapterPos / pageItemCount;
         int index = adapterPos % pageItemCount;
@@ -260,7 +276,6 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         if (pageRemainder == 0) {
             for (int i = 0; i < columnCount; i++) {
                 int index = firstShouldVisiPos + i;
-                Log.d(TAG, "getVisibilityIndex: index=" + index);
                 for (int j = 0; j < rowCount; j++) {
                     integers.add(index);
                     index += columnCount;

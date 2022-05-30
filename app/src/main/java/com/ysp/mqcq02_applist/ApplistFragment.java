@@ -14,15 +14,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.ysp.mqcq02_applist.layputer.PagerGridLayoutManager;
+import com.ysp.mqcq02_applist.layputer.PagerGridSnapHelper;
+
 import java.util.List;
 
 
-public class ApplistFragment extends Fragment implements AppFinder.AppFindListener, AppClickListener, PagerLayoutManager.OnPageChangeListener {
+public class ApplistFragment extends Fragment implements AppFinder.AppFindListener, AppClickListener, PagerLayoutManager.OnPageChangeListener, View.OnClickListener {
 
     private RecyclerView app_list;
     private ApplistAdapter applistAdapter;
     private PagerSnapHelper helper;
     TextView indicator_text;
+    private PagerGridLayoutManager layoutManager;
+    private PagerLayoutManager pagerLayoutManager;
 
     public ApplistFragment() {
     }
@@ -41,10 +46,16 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_applist, container, false);
+        view.findViewById(R.id.left).setOnClickListener(this);
+        view.findViewById(R.id.right).setOnClickListener(this);
         indicator_text = view.findViewById(R.id.indicator_text);
         app_list = view.findViewById(R.id.app_list);
         app_list.setAdapter(applistAdapter);
-        app_list.setLayoutManager(new PagerLayoutManager(5, 4).setPageChangeListener(this));
+        pagerLayoutManager = new PagerLayoutManager(4, 3).setPageChangeListener(this);
+        app_list.setLayoutManager(pagerLayoutManager);
+//        layoutManager = new PagerGridLayoutManager(5, 4, PagerGridLayoutManager.HORIZONTAL);
+//        app_list.setLayoutManager(layoutManager);
+//        new PagerGridSnapHelper().attachToRecyclerView(app_list);
         return view;
     }
 
@@ -67,5 +78,19 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
     @Override
     public void onPageChange(int page) {
         indicator_text.setText("" + page);
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (R.id.left == v.getId()) {
+//            layoutManager.prePage();
+            pagerLayoutManager.smoothScrollToPage(3);
+        } else if (R.id.right == v.getId()) {
+//            layoutManager.nextPage();
+            pagerLayoutManager.smoothScrollToPage(0);
+        } else {
+        }
+
+
     }
 }

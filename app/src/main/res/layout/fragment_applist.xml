@@ -15,15 +15,19 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
+        android:id="@+id/left"
         android:layout_width="29dp"
         android:layout_height="28dp"
         android:src="@mipmap/ic_launcher"
+        android:onClick="onLeft"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <ImageView
+        android:id="@+id/right"
         android:layout_width="29dp"
         android:layout_height="28dp"
+        android:onClick="onRight"
         android:src="@mipmap/ic_launcher"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
