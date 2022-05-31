@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class PagerLayoutManager extends RecyclerView.LayoutManager {
-    private static final String TAG = "PgLayoutManager";
+    private static final String TAG = "PagerLayoutManager";
 
     private int rowCount = 4;
     private int columnCount = 3;
@@ -77,7 +77,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
             List<Integer> willAdd = removeListTwo4ListOne(visibilityIndex, lastDisplayIndex);
             if (!willRemove.isEmpty()) {
                 for (Integer i : willRemove) {
-                    Log.e(TAG, "recyclerAndFillView: willRemove" + i);
+                    Log.d(TAG, "recyclerAndFillView: willRemove item  " + i);
                     View view = currentDisplayViews.get(i);
                     if (view != null) {
                         removeAndRecycleView(view, recycler);
@@ -88,7 +88,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
             }
             if (!willAdd.isEmpty()) {
                 for (Integer i : willAdd) {
-                    Log.e(TAG, "recyclerAndFillView: willAdd" + i);
+                    Log.d(TAG, "recyclerAndFillView: willAdd item  " + i);
                     if (i >= 0 && i < getItemCount()) {
                         Rect itemRang = getItemRang(i);
                         View viewForPosition = recycler.getViewForPosition(i);
@@ -107,7 +107,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
         } else {
             clearCache();
             for (Integer i : visibilityIndex) {
-                Log.e(TAG, "recyclerAndFillView: visibilityIndex" + i);
+                Log.d(TAG, "recyclerAndFillView: visibilityIndex" + i);
                 if (i >= 0 && i < getItemCount()) {
                     Rect itemRang = getItemRang(i);
                     View viewForPosition = recycler.getViewForPosition(i);
@@ -123,6 +123,7 @@ public class PagerLayoutManager extends RecyclerView.LayoutManager {
             }
             lastDisplayIndex = visibilityIndex;
         }
+        Log.d(TAG, "reLayoutViews: ChildCount= " + getChildCount());
         return 0;
     }
 

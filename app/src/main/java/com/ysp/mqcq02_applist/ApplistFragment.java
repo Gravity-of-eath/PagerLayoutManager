@@ -51,7 +51,7 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
         indicator_text = view.findViewById(R.id.indicator_text);
         app_list = view.findViewById(R.id.app_list);
         app_list.setAdapter(applistAdapter);
-        pagerLayoutManager = new PagerLayoutManager(4, 3).setPageChangeListener(this);
+        pagerLayoutManager = new PagerLayoutManager(5, 4).setPageChangeListener(this);
         app_list.setLayoutManager(pagerLayoutManager);
 //        layoutManager = new PagerGridLayoutManager(5, 4, PagerGridLayoutManager.HORIZONTAL);
 //        app_list.setLayoutManager(layoutManager);
@@ -72,7 +72,7 @@ public class ApplistFragment extends Fragment implements AppFinder.AppFindListen
 
     @Override
     public void onAppClick(ApplicationInformation info) {
-        startActivity(info.launchIntent);
+//        startActivity(info.launchIntent);
     }
 
     @Override
